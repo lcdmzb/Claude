@@ -65,6 +65,18 @@ final class ChimePlayer {
         engine.attach(player)
         engine.connect(player, to: engine.mainMixerNode, format: format)
         engine.prepare()
+
+        // 插拔耳机、切换到显示器音箱等会让引擎停摆，连接也需要重建
+        NotificationCenter.default.addObserver(
+            forName: .AVAudioEngineConfigurationChange,
+            object: engine,
+            queue: .main
+        ) { [weak self] _ in
+            guard let self else { return }
+            self.engine.connect(self.player, to: self.engine.mainMixerNode, format: format)
+            try? self.engine.start()
+        }
+
         buffer = makeChimeBuffer(format: format)
         return buffer != nil
     }
@@ -130,11 +142,13 @@ final class ChimePlayer {
             for frame in startFrame..<Int(frameCount) {
                 let t = Double(frame - startFrame) / sampleRate
 
-                // 起音 + 指数衰减包络
-                let attackEnv = t < attack ? t / attack : 1.0
+                // 起音 + 指数衰减包络。
+                // 提前退出只能看衰减项：起音项在第一帧本来就是 0，
+                // 拿它判断会让整个音符一个采样都写不进去（全曲静音）。
                 let releaseEnv = exp(-t / note.decay)
+                if releaseEnv < 0.0001 { break }
+                let attackEnv = t < attack ? t / attack : 1.0
                 let env = attackEnv * releaseEnv
-                if env < 0.0001 { break }
 
                 var sample = 0.0
                 for p in partials {
@@ -158,12 +172,15 @@ final class ChimePlayer {
             right[idx] *= k
         }
 
-        // 归一化到 0.85 峰值，防止削波
+        // 归一化到 0.85 峰值，防止削波。
+        // 万一合成结果异常安静，宁可返回 nil 退回系统提示音，
+        // 也不要让用户听到一段「正在播放的无声」。
         var peak = 0.0
         for i in 0..<Int(frameCount) {
             peak = max(peak, max(abs(left[i]), abs(right[i])))
         }
-        let scale = peak > 0.0001 ? 0.85 / peak : 1.0
+        guard peak > 0.001 else { return nil }
+        let scale = 0.85 / peak
 
         for i in 0..<Int(frameCount) {
             channels[0][i] = Float(left[i] * scale)
