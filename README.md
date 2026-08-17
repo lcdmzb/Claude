@@ -31,7 +31,7 @@
 - 数据以 JSON 存在本地 `~/Library/Application Support/StandUp/store.json`，不联网、不上传
 - 电脑睡眠期间不会误计使用时长；唤醒后会立刻补上错过的提醒
 
-> **完全没有编程基础？** 请看 [安装指南.md](安装指南.md)，里面有一步一步的图文说明。
+> **完全没有编程基础？** 请看 [INSTALL-zh.md](INSTALL-zh.md)（中文安装指南），里面有一步一步的说明。
 
 ## 系统要求
 

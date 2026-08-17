@@ -218,6 +218,24 @@ bash build_app.sh --install
 
 ---
 
+## 以后怎么更新到新版本
+
+不用再去网页下载 ZIP。打开终端，粘贴下面这一整行，回车即可：
+
+```
+cd ~/Pictures && rm -rf Claude-claude-macos-sitting-reminder-app-dj0wup standup.zip && curl -L -o standup.zip "https://github.com/lcdmzb/Claude/archive/refs/heads/claude/macos-sitting-reminder-app-dj0wup.zip" && ditto -x -k standup.zip . && rm standup.zip && cd Claude-claude-macos-sitting-reminder-app-dj0wup && bash build_app.sh --install --run
+```
+
+它会自动完成：删掉旧源码 → 下载最新代码 → 解压 → 重新编译 → 装进「应用程序」→ 打开。
+
+**更新前记得先退出 App**（菜单栏图标 → 退出），否则新版本可能覆盖不上去。
+
+> 这里用的是 macOS 自带的 `ditto` 而不是 `unzip`。
+> `unzip` 不认 UTF-8 文件名，遇到中文文件会报 `write error (disk full?)`——
+> 那是文件名解析失败的误报，不是磁盘真的满了。
+
+---
+
 ## 数据存在哪
 
 你的打卡记录存在这个文件里：
