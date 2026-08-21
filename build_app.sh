@@ -5,6 +5,7 @@
 #   ./build_app.sh              编译 + 打包到 dist/
 #   ./build_app.sh --install    编译 + 打包，并复制到 /Applications
 #   ./build_app.sh --run        编译 + 打包，并立刻打开
+#   ./build_app.sh --dmg        编译 + 打包，并生成可分发的 .dmg 安装包
 #
 set -euo pipefail
 
@@ -20,12 +21,14 @@ APP_DIR="${DIST_DIR}/${APP_NAME}.app"
 
 INSTALL=false
 LAUNCH=false
+MAKE_DMG=false
 for arg in "$@"; do
     case "$arg" in
         --install) INSTALL=true ;;
         --run)     LAUNCH=true ;;
+        --dmg)     MAKE_DMG=true ;;
         -h|--help)
-            sed -n '2,10p' "$0" | sed 's/^# \{0,1\}//'
+            sed -n '2,11p' "$0" | sed 's/^# \{0,1\}//'
             exit 0
             ;;
         *) echo "未知参数：$arg" >&2; exit 1 ;;
@@ -144,6 +147,33 @@ echo "==> 本地临时签名"
 codesign --force --deep --sign - "$APP_DIR" 2>/dev/null \
     || echo "    签名失败，App 仍可运行（首次打开需右键 → 打开）"
 
+# ---------------------------------------------------------------- 安装包
+
+DMG_PATH=""
+if $MAKE_DMG; then
+    echo "==> 生成 .dmg 安装包"
+    # 装配一个临时目录：App + 指向「应用程序」的快捷方式，
+    # 这样用户打开 dmg 后把左边的图标拖到右边即可完成安装
+    STAGE="$(mktemp -d)/payload"
+    mkdir -p "$STAGE"
+    cp -R "$APP_DIR" "${STAGE}/${APP_NAME}.app"
+    ln -s /Applications "${STAGE}/应用程序"
+
+    # 文件名保持 ASCII，方便通过邮件、网盘、聊天工具传输时不乱码；
+    # 卷标（挂载后显示的名字）才用中文
+    DMG_PATH="${DIST_DIR}/StandUp-${VERSION}.dmg"
+    rm -f "$DMG_PATH"
+    hdiutil create \
+        -volname "${APP_NAME}" \
+        -srcfolder "$STAGE" \
+        -fs HFS+ \
+        -format UDZO \
+        -ov \
+        "$DMG_PATH" >/dev/null
+    rm -rf "$(dirname "$STAGE")"
+    DMG_PATH="$(cd "$DIST_DIR" && pwd)/StandUp-${VERSION}.dmg"
+fi
+
 # ---------------------------------------------------------------- 收尾
 
 if $INSTALL; then
@@ -157,6 +187,10 @@ fi
 
 echo ""
 echo "✅ 构建完成：${FINAL}"
+if [[ -n "$DMG_PATH" ]]; then
+    echo "📦 安装包：${DMG_PATH}"
+    echo "   这个 .dmg 可以拷给别人或备份，双击后把图标拖进「应用程序」即可安装。"
+fi
 echo "   首次打开若提示「无法验证开发者」，请右键点击 App → 打开 → 再次点「打开」。"
 
 if $LAUNCH; then

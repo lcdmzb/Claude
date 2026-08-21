@@ -47,7 +47,11 @@ cd claude
 ./build_app.sh            # 编译并打包到 dist/站立提醒.app
 ./build_app.sh --install  # 顺便复制到 /Applications
 ./build_app.sh --run      # 打包完直接打开
+./build_app.sh --dmg      # 额外生成 dist/StandUp-1.0.0.dmg 安装包
 ```
+
+`--dmg` 产出的是完整独立的安装包：包含编译好的通用二进制（Intel + Apple Silicon），
+安装和运行都不需要联网，双击后把图标拖进「应用程序」即可。
 
 首次打开时若提示「无法验证开发者」，**右键点击 App → 打开 → 再点一次「打开」**即可
 （因为这是本地临时签名，不是 App Store 分发的应用）。
