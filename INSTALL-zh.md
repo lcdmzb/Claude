@@ -220,7 +220,22 @@ bash build_app.sh --install
 
 ## 生成独立安装包（.dmg）
 
-如果你想要一个可以备份、拷给朋友、或者换电脑时直接用的安装包，在项目文件夹里运行：
+如果你想要一个可以备份、拷给朋友、或者换电脑时直接用的安装包，有两种做法。
+
+### 做法一：直接打包已装好的 App（推荐，不联网、几秒钟）
+
+App 装进「应用程序」之后，随时可以把它打包成安装包，**不需要源码、不需要重新编译**。
+在终端里粘贴这一整行即可：
+
+```
+STAGE="$(mktemp -d)/payload" && mkdir -p "$STAGE" && cp -R "/Applications/站立提醒.app" "$STAGE/" && ln -s /Applications "$STAGE/应用程序" && hdiutil create -volname "站立提醒" -srcfolder "$STAGE" -fs HFS+ -format UDZO -ov ~/Desktop/StandUp-1.0.0.dmg && rm -rf "$(dirname "$STAGE")" && open ~/Desktop
+```
+
+跑完桌面上就会出现 **StandUp-1.0.0.dmg**，并自动弹出访达窗口。
+
+项目里的 `make_dmg.sh` 做的就是这件事，如果你手上有源码文件夹，运行 `bash make_dmg.sh` 效果相同。
+
+### 做法二：编译时顺便生成
 
 ```
 bash build_app.sh --dmg
@@ -256,6 +271,17 @@ cd ~/Pictures && rm -rf Claude-claude-macos-sitting-reminder-app-dj0wup standup.
 它会自动完成：删掉旧源码 → 下载最新代码 → 解压 → 重新编译 → 装进「应用程序」→ 打开。
 
 **更新前记得先退出 App**（菜单栏图标 → 退出），否则新版本可能覆盖不上去。
+
+### 如果下载卡住 / 提示 timeout
+
+国内访问 GitHub 时快时慢，`curl` 那一步超时很常见。处理办法：
+
+1. **直接重跑同一条命令**，多试两次往往就过去了
+2. 挂了代理 / VPN 的话打开它再试
+3. 实在下不动，就用浏览器打开下面的地址手动下载 ZIP，再按「第 3 步」往下走：
+   https://github.com/lcdmzb/Claude/archive/refs/heads/claude/macos-sitting-reminder-app-dj0wup.zip
+
+注意：超时**只影响更新**。已经装好的 App 完全不受影响，它本来就不联网。
 
 > 这里用的是 macOS 自带的 `ditto` 而不是 `unzip`。
 > `unzip` 不认 UTF-8 文件名，遇到中文文件会报 `write error (disk full?)`——
